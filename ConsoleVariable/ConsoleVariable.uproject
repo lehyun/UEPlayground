@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "{5517DDFA-44F2-5FC1-0DC3-C48F6FE9A7B0}",
+	"EngineAssociation": "{8833EC65-4459-2263-7A16-0CAF0ADA76BB}",
 	"Category": "",
 	"Description": "",
 	"Modules": [
@@ -9,7 +9,8 @@
 			"Type": "Runtime",
 			"LoadingPhase": "Default",
 			"AdditionalDependencies": [
-				"Engine"
+				"Engine",
+				"CoreUObject"
 			]
 		}
 	]
