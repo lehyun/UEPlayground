@@ -2,6 +2,8 @@
 
 #include "MyBlueprintFunctionLibrary.h"
 #include "Kismet/KismetSystemLibrary.h" 
+#include "MyDeveloperSettings.h"
+#include "MyCustomSettings.h"
 
 // ECVF_ReadOnly - 옵션. 읽기 전. 콘솔에서 수정 불가.
 // ECVF_Cheat - 옵션. 최종 릴리즈 빌드에서만 ReadOnly와 동일.
@@ -40,26 +42,31 @@ static TAutoConsoleVariable<int32> CVarHyunLeeGroup(
 
 
 
+void UMyBlueprintFunctionLibrary::DebugPrint(const FString& Text)
+{
+	UKismetSystemLibrary::PrintString(GEngine->GetWorld(), Text);
+}
+
 void UMyBlueprintFunctionLibrary::PrintAllCVars()
 {
 	{
 		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("hl.ExampleVariable1"));
 		FString Text = FString::Printf(TEXT("hl.ExampleVariable1 = %d (0x%08X)"), CVar->GetInt(), (int)CVar->GetFlags());
-		UKismetSystemLibrary::PrintString(GEngine->GetWorld(), Text);
+		DebugPrint(Text);
 
 		checkCode(ensure(CVar->GetInt() == CVarHyunLeeExample1.GetValueOnGameThread()));
 	}
 	{
 		static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("hl.ExampleVariable2"));
 		FString Text = FString::Printf(TEXT("hl.ExampleVariable2 = %f (0x%08X)"), CVar->GetFloat(), (int)CVar->GetFlags());
-		UKismetSystemLibrary::PrintString(GEngine->GetWorld(), Text);
+		DebugPrint(Text);
 	}
 	{
 		const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("hl.ExampleVariable3"));
 		if (CVar != nullptr)
 		{
 			FString Text = FString::Printf(TEXT("hl.ExampleVariable3 = %s (0x%08X)"), *CVar->GetString(), (int)CVar->GetFlags());
-			UKismetSystemLibrary::PrintString(GEngine->GetWorld(), Text);
+			DebugPrint(Text);
 		}
 	}
 }
@@ -102,4 +109,25 @@ void UMyBlueprintFunctionLibrary::ApplyScalabilityGroup()
 {
 	int32 Value = CVarHyunLeeGroup.GetValueOnGameThread();
 	ApplyCVarSettingsGroupFromIni(TEXT("HyunLeeGroup"), Value, *GScalabilityIni, ECVF_SetByScalability);
+}
+
+void UMyBlueprintFunctionLibrary::PrintSettins()
+{
+	UMyDeveloperSettings* MyDeveloperSettings = GetMutableDefault<UMyDeveloperSettings>();
+	if (MyDeveloperSettings)
+	{
+		DebugPrint(FString::Printf(TEXT("MyDeveloperSettings.bSampleBool = %s"), MyDeveloperSettings->bSampleBool ? TEXT("True") : TEXT("False")));
+
+		for (const auto& Str : MyDeveloperSettings->SampleStringArray)
+		{
+			DebugPrint(FString::Printf(TEXT("MyDeveloperSettings.SampleStringArray = %s"), *Str));
+		}
+	}
+
+	UMyCustomSettings* MyCustomSettings = GetMutableDefault<UMyCustomSettings>();
+	if (MyCustomSettings)
+	{
+		DebugPrint(FString::Printf(TEXT("MyCustomSettings.bSampleBool = %s"), MyCustomSettings->bSampleBool ? TEXT("True") : TEXT("False")));
+		DebugPrint(FString::Printf(TEXT("MyCustomSettings.SampleFloatRequireRestart = %f"), MyCustomSettings->SampleFloatRequireRestart));
+	}
 }

@@ -15,6 +15,9 @@ class CONSOLEVARIABLE_API UMyBlueprintFunctionLibrary : public UBlueprintFunctio
 	
 public:
 	UFUNCTION(BlueprintCallable, Category = "My")
+	static void DebugPrint(const FString& Text);
+
+	UFUNCTION(BlueprintCallable, Category = "My")
 	static void PrintAllCVars();
 
 	UFUNCTION(BlueprintCallable, Category = "My")
@@ -28,6 +31,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "My")
 	static void ApplyScalabilityGroup();
+
+	UFUNCTION(BlueprintCallable, Category = "My")
+	static void PrintSettins();
+
 
 
 };
