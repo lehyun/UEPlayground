@@ -34,7 +34,4 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "My")
 	static void PrintSettins();
-
-
-
 };

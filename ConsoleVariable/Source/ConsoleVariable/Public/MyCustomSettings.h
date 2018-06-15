@@ -11,6 +11,9 @@
 * To ensure the settings are saved to the specified config file make sure to add
 * props using the globalconfig or config meta.
 */
+
+// config = Load object configuration at construction time.
+// defaultconfig = Save object config only to Default INIs, never to local INIs.
 UCLASS(config = Game, defaultconfig)
 class UMyCustomSettings : public UObject
 {
@@ -38,5 +41,4 @@ public:
 	/** We can even use asset references */
 	UPROPERTY(config, EditAnywhere, Category = Materials, meta = (AllowedClasses = "MaterialInterface"))
 	FStringAssetReference StringMaterialAssetReference;
-
 };
