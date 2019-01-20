@@ -111,7 +111,7 @@ void UMyBlueprintFunctionLibrary::ApplyScalabilityGroup()
 	ApplyCVarSettingsGroupFromIni(TEXT("HyunLeeGroup"), Value, *GScalabilityIni, ECVF_SetByScalability);
 }
 
-void UMyBlueprintFunctionLibrary::PrintSettins()
+void UMyBlueprintFunctionLibrary::PrintSettings()
 {
 	UMyDeveloperSettings* MyDeveloperSettings = GetMutableDefault<UMyDeveloperSettings>();
 	if (MyDeveloperSettings)
@@ -129,5 +129,140 @@ void UMyBlueprintFunctionLibrary::PrintSettins()
 	{
 		DebugPrint(FString::Printf(TEXT("MyCustomSettings.bSampleBool = %s"), MyCustomSettings->bSampleBool ? TEXT("True") : TEXT("False")));
 		DebugPrint(FString::Printf(TEXT("MyCustomSettings.SampleFloatRequireRestart = %f"), MyCustomSettings->SampleFloatRequireRestart));
+	}
+}
+
+void UMyBlueprintFunctionLibrary::TestArray(int32 Size)
+{
+	FTestParent Parent1;
+	int32 MaxNum = Size;
+	for (int32 Index = 0; Index < MaxNum; ++Index)
+	{
+		FTestChild Child;
+		Child.DebugName = FString::Printf(TEXT("자식노드_%d"), Index);
+		Parent1.Children.Add(Child);
+	}
+
+	for (int32 Index = 0; Index < MaxNum; ++Index)
+	{
+		FTestParent Parent2;
+		Parent2.Children = Parent1.Children;
+
+		MaxNum = Parent2.Children.Num();
+		for (int32 Index = MaxNum - 1; Index >= 0; --Index)
+		{
+			FTestChild Child = Parent2.Children[Index];
+			Parent2.Children.Add(Child);
+			Parent2.Children.RemoveAt(Index);
+		}
+
+		for (auto Child : Parent2.Children)
+		{
+			DebugPrint(Child.DebugName);
+		}
+	}
+}
+
+void UMyBlueprintFunctionLibrary::TestAny()
+{
+
+}
+
+#include "ProceduralMeshcomponent.h"
+#include "Components/SceneCaptureComponent2D.h"
+#include "Kismet/KismetRenderingLibrary.h"
+
+#define PRINT_INT(x) UMyBlueprintFunctionLibrary::DebugPrint(FString::Printf(TEXT("%s = %d"), TEXT(#x), x));
+
+AImposterSpriteGenerator::AImposterSpriteGenerator(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	DummyRoot = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
+	ProceduralMeshComponent = CreateDefaultSubobject<UProceduralMeshComponent>(TEXT("ProceduralMeshComponent"));
+	SceneCaptureComponent2D = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("SceneCaptureComponent2D"));
+
+	ProceduralMeshComponent->SetupAttachment(DummyRoot);
+	SceneCaptureComponent2D->SetupAttachment(DummyRoot);
+	RootComponent = DummyRoot;
+}
+
+void AImposterSpriteGenerator::SetupRTAndSaveList(int InRes, int InSceneCaptureRes)
+{
+	float ResMips = FMath::Clamp((int32)FMath::FloorLog2((float)InRes), 9, 14);
+	Resolution = FMath::TruncToInt(FMath::Pow(ResMips, 2));
+	PRINT_INT(Resolution);
+
+	SceneCaptureMips = FMath::Clamp((int32)FMath::FloorLog2((float)InSceneCaptureRes), 7, 11);
+	PRINT_INT(SceneCaptureMips);
+
+	CutoutMipTarget = SceneCaptureMips - 4;
+	PRINT_INT(CutoutMipTarget);
+
+	DFMipTarget = CutoutMipTarget + 3;
+	PRINT_INT(DFMipTarget);
+
+	SceneCatpureResolution = FMath::TruncToInt(FMath::Pow(SceneCaptureMips, 2));
+	PRINT_INT(SceneCatpureResolution);
+
+	// Allocate Targets for User Maps when Necessary
+	// Create RTs
+	for (const ELMImposterBakeType& BakeType : MapsToRender)
+	{
+		UTextureRenderTarget2D* RT = nullptr;
+		UTextureRenderTarget2D** RTAddr = TargetMaps.Find(BakeType);
+		if (RTAddr) RT = *RTAddr;
+		if (!RT->IsValidLowLevel() || RT->SizeX != Resolution)
+		{
+			RT = UKismetRenderingLibrary::CreateRenderTarget2D(this, Resolution, Resolution, RTF_RGBA16f);
+			*RTAddr = RT;
+		}
+	}
+	
+	// Clear Invalid RTs
+	{
+		TArray<ELMImposterBakeType> Keys;
+		if (TargetMaps.GetKeys(Keys))
+		{
+			for (const ELMImposterBakeType& BakeType : Keys)
+			{
+				UTextureRenderTarget2D* RT = nullptr;
+				UTextureRenderTarget2D** RTAddr = TargetMaps.Find(BakeType);
+				if (RTAddr) RT = *RTAddr;
+				if (!RT->IsValidLowLevel())
+				{
+					TargetMaps.Remove(BakeType);
+				}
+			}
+		}
+	}
+
+	// Scene Capture Render Target with Mips
+	int32 NumOfMipChain = SceneCaptureMipChain.Num();
+	SceneCaptureMipChain.Reserve(8);
+	for (int32 MipIdx = 0; MipIdx <= 7; ++MipIdx)
+	{
+		UTextureRenderTarget2D* CaptureRT = nullptr;
+		int32 ResSize = SceneCatpureResolution / FMath::TruncToInt(FMath::Pow(2.0, (float)MipIdx));
+
+		if (MipIdx < NumOfMipChain)
+		{
+			CaptureRT = SceneCaptureMipChain[MipIdx];
+			if (CaptureRT)
+			{
+				if (CaptureRT->SizeX != ResSize)
+				{
+					CaptureRT = nullptr;
+				}
+			}	
+		}
+		else
+		{
+			SceneCaptureMipChain.Add(nullptr);
+		}
+		if (!CaptureRT)
+		{
+			CaptureRT = UKismetRenderingLibrary::CreateRenderTarget2D(this, ResSize, ResSize, RTF_RGBA16f);
+			SceneCaptureMipChain[MipIdx] = CaptureRT;
+		}
 	}
 }
